@@ -5,50 +5,26 @@ package krusher
 
 import org.checkerframework.common.value.qual.IntRange
 import java.awt.image.BufferedImage
-import java.awt.image.BufferedImage.TYPE_INT_RGB
-import java.io.ByteArrayOutputStream
-import javax.imageio.ImageIO
-import javax.imageio.ImageWriteParam
 
 typealias ImgQuality = @IntRange(from = 0, to = 100) Int
 
-class Krusher {
-    companion object {
-        fun toRgb(img: BufferedImage): BufferedImage {
-            val rgbImg = BufferedImage(img.width, img.height, TYPE_INT_RGB)
-            rgbImg.createGraphics().drawImage(img, 0, 0, null)
-            return rgbImg
-        }
-
-        fun compress(img: BufferedImage, quality: ImgQuality): BufferedImage {
-            val byteOutStream = ByteArrayOutputStream()
-
-            writerContext(byteOutStream) {
-                val param = defaultWriteParam
-                if (param.canWriteCompressed()) {
-                    param.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
-                    param.setCompressionQuality(quality / 100.0f);
-                } else {
-                    throw IllegalStateException("Cannot write compressed")
-                }
-
-                write(img, param)
-            }
-
-            val compressed = ImageIO.read(byteOutStream.toByteArray().inputStream())
-
-            return compressed
-        }
-
-        fun process(img: BufferedImage, iterations: Int) =
-            (0..iterations).fold(img) { newImg, iteration ->
-                val pct = 100 * iteration / iterations
-                val quality = 100 - pct
-                newImg.toRgb().compress(quality)
-            }
-    }
+interface Krusher {
+    fun toRgb(img: BufferedImage): BufferedImage
+    fun compress(img: BufferedImage, quality: ImgQuality): BufferedImage
+    fun process(img: BufferedImage, iterations: Int): BufferedImage
+    fun compose(img: BufferedImage, block: KrusherScope.() -> BufferedImage) = KrusherScope(this, img).block()
 }
 
-fun BufferedImage.toRgb() = Krusher.toRgb(this)
+class KrusherScope(private val obj: Krusher, private var bufferedImage: BufferedImage): Krusher by obj  {
+    override fun toRgb(img: BufferedImage): BufferedImage = obj.toRgb(bufferedImage).commit()
+    fun toRgb() = this.toRgb(bufferedImage)
 
-fun BufferedImage.compress(quality: ImgQuality) = Krusher.compress(this, quality)
+    override fun compress(img: BufferedImage, quality: ImgQuality) = obj.compress(bufferedImage, quality).commit()
+    fun compress(quality: ImgQuality) = this.compress(bufferedImage, quality)
+
+    override fun process(img: BufferedImage, iterations: Int) = obj.process(img, iterations).commit()
+    fun process(iterations: Int) = this.process(bufferedImage, iterations)
+
+    private fun BufferedImage.commit() = apply { bufferedImage = this }
+}
+
