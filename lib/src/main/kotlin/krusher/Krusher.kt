@@ -12,19 +12,27 @@ interface Krusher {
     fun toRgb(img: BufferedImage): BufferedImage
     fun compress(img: BufferedImage, quality: ImgQuality): BufferedImage
     fun process(img: BufferedImage, iterations: Int): BufferedImage
-    fun compose(img: BufferedImage, block: KrusherScope.() -> BufferedImage) = KrusherScope(this, img).block()
+    fun compose(img: BufferedImage, block: KrusherComposer.() -> Unit): BufferedImage =
+        KrusherScope(this, img).run { block(); bufferedImage }
 }
 
-class KrusherScope(private val obj: Krusher, private var bufferedImage: BufferedImage): Krusher by obj  {
-    override fun toRgb(img: BufferedImage): BufferedImage = obj.toRgb(bufferedImage).commit()
-    fun toRgb() = this.toRgb(bufferedImage)
+interface KrusherComposer {
+    fun toRgb(): KrusherComposer
+    fun compress(quality: ImgQuality): KrusherComposer
+    fun process(iterations: Int): KrusherComposer
+}
 
-    override fun compress(img: BufferedImage, quality: ImgQuality) = obj.compress(bufferedImage, quality).commit()
-    fun compress(quality: ImgQuality) = this.compress(bufferedImage, quality)
+abstract class KrusherComposerAbs(var bufferedImage: BufferedImage, protected var krusher: Krusher): KrusherComposer {
+    protected fun BufferedImage.commit() {
+        bufferedImage = this
+    }
+}
 
-    override fun process(img: BufferedImage, iterations: Int) = obj.process(img, iterations).commit()
-    fun process(iterations: Int) = this.process(bufferedImage, iterations)
+class KrusherScope(obj: Krusher, bufferedImage: BufferedImage): Krusher by obj, KrusherComposerAbs(bufferedImage, obj)  {
+    override fun toRgb() = apply { toRgb(bufferedImage).commit() }
 
-    private fun BufferedImage.commit() = apply { bufferedImage = this }
+    override fun compress(quality: ImgQuality) = apply { compress(bufferedImage, quality).commit() }
+
+    override fun process(iterations: Int) = apply { process(bufferedImage, iterations).commit() }
 }
 
