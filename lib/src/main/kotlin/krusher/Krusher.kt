@@ -5,15 +5,19 @@ package krusher
 
 import org.checkerframework.common.value.qual.IntRange
 import java.awt.image.BufferedImage
+import java.io.File
 
 typealias ImgQuality = @IntRange(from = 0, to = 100) Int
 
-interface Krusher {
-    fun toRgb(img: BufferedImage): BufferedImage
-    fun compress(img: BufferedImage, quality: ImgQuality): BufferedImage
-    fun process(img: BufferedImage, iterations: Int): BufferedImage
-    fun compose(img: BufferedImage, block: KrusherComposer.() -> Unit): BufferedImage =
-        KrusherScope(this, img).run { block(); bufferedImage }
+interface Krusher<T> {
+    fun toRgb(img: T): T
+    fun compress(img: T, quality: ImgQuality): T
+    fun process(img: T, iterations: Int): T
+    fun compose(img: T, block: KrusherComposer.() -> Unit): T =
+        KrusherScope(this, img).run { block(); image }
+    fun write(img: T, file: File)
+    fun fromAwt(img: BufferedImage): T
+    fun toAwt(img: T): BufferedImage
 }
 
 interface KrusherComposer {
@@ -22,17 +26,17 @@ interface KrusherComposer {
     fun process(iterations: Int): KrusherComposer
 }
 
-abstract class KrusherComposerAbs(var bufferedImage: BufferedImage, protected var krusher: Krusher): KrusherComposer {
-    protected fun BufferedImage.commit() {
-        bufferedImage = this
+abstract class KrusherComposerAbs<T>(var image: T, protected var krusher: Krusher<T>): KrusherComposer {
+    protected fun T.commit() {
+        image = this
     }
 }
 
-class KrusherScope(obj: Krusher, bufferedImage: BufferedImage): Krusher by obj, KrusherComposerAbs(bufferedImage, obj)  {
-    override fun toRgb() = apply { toRgb(bufferedImage).commit() }
+class KrusherScope<T>(obj: Krusher<T>, bufferedImage: T): Krusher<T> by obj, KrusherComposerAbs<T>(bufferedImage, obj)  {
+    override fun toRgb() = apply { toRgb(image).commit() }
 
-    override fun compress(quality: ImgQuality) = apply { compress(bufferedImage, quality).commit() }
+    override fun compress(quality: ImgQuality) = apply { compress(image, quality).commit() }
 
-    override fun process(iterations: Int) = apply { process(bufferedImage, iterations).commit() }
+    override fun process(iterations: Int) = apply { process(image, iterations).commit() }
 }
 

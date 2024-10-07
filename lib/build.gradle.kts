@@ -32,6 +32,9 @@ dependencies {
 
     // This dependency is used internally, and not exposed to consumers on their own compile classpath.
     implementation(libs.guava)
+
+    api("com.sksamuel.scrimage:scrimage-core:4.2.0")
+    implementation("com.sksamuel.scrimage:scrimage-filters:4.2.0")
 }
 
 // Apply a specific Java toolchain to ease working on different environments.
