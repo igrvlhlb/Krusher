@@ -18,12 +18,12 @@ object KrusherScr: Krusher<ImmutableImage> {
     }
 
     override fun compress(img: ImmutableImage, quality: ImgQuality): ImmutableImage {
-        val writer = JpegWriter().withCompression(100 - quality)
+        val writer = JpegWriter().withCompression(quality)
         return ImmutableImage.loader().fromStream(ByteArrayInputStream(img.bytes(writer)))
     }
 
     override fun process(img: ImmutableImage, iterations: Int): ImmutableImage =
-        (1 .. iterations).fold(img) { newImg, iteration ->
+        (0 until iterations).fold(img) { newImg, iteration ->
             val pct = 100 * iteration / iterations
             val quality = 100 - pct
             compress(newImg, quality)
