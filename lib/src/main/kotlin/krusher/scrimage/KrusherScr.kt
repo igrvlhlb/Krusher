@@ -2,12 +2,15 @@ package krusher.scrimage
 
 import com.sksamuel.scrimage.ImmutableImage
 import com.sksamuel.scrimage.filter.RGBFilter
+import com.sksamuel.scrimage.nio.ImageWriter
 import com.sksamuel.scrimage.nio.JpegWriter
 import krusher.ImgQuality
 import krusher.Krusher
 import java.awt.image.BufferedImage
 import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
 import java.io.File
+import java.util.logging.Logger
 
 object KrusherScr: Krusher<ImmutableImage> {
     override fun toRgb(img: ImmutableImage): ImmutableImage {
@@ -20,7 +23,7 @@ object KrusherScr: Krusher<ImmutableImage> {
     }
 
     override fun process(img: ImmutableImage, iterations: Int): ImmutableImage =
-        (0..iterations).fold(img) { newImg, iteration ->
+        (1 .. iterations).fold(img) { newImg, iteration ->
             val pct = 100 * iteration / iterations
             val quality = 100 - pct
             compress(newImg, quality)

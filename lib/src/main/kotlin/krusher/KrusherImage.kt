@@ -1,33 +1,29 @@
 package krusher
 
+import com.sksamuel.scrimage.ImmutableImage
 import krusher.imageio.KrusherImpl
 import krusher.scrimage.KrusherScr
 import java.awt.image.BufferedImage
 import java.io.File
 
-class KrusherImage<T>(img: BufferedImage, val krusher: Krusher<T>): KrusherComposer {
+sealed class KrusherImage<T>(img: BufferedImage, private val krusher: Krusher<T>): Krusher<T> by krusher {
+    private var image: T = krusher.fromAwt(img)
 
-    private var image = krusher.fromAwt(img)
+    fun crush() = toAwt(image)
+    fun toRgb() = apply { toRgb(image).commit() }
+    fun compress(quality: ImgQuality) = apply { compress(image, quality).commit() }
+    fun process(iterations: Int) = apply { process(image, iterations).commit() }
+    fun write(file: File) = apply { write(image, file) }
 
-    private val krusherScope = KrusherScope(krusher, image)
-
-    override fun toRgb(): KrusherComposer = apply { krusherScope.toRgb() }
-
-    override fun compress(quality: ImgQuality) = apply { krusherScope.compress(quality) }
-
-    override fun process(iterations: Int) = apply { krusherScope.process(iterations) }
-
-    fun write(file: File) {
-        krusherScope.write(image, file)
+    protected fun T.commit() {
+        image = this
     }
 
-    fun crush() = krusher.toAwt(krusherScope.image)
-
     companion object {
-        fun create(img: BufferedImage, type: KrusherType): KrusherImage<out Any> {
+        fun create(img: BufferedImage, type: KrusherType = KrusherType.IMAGEIO): KrusherImage<out Any> {
             return when (type) {
-                KrusherType.IMAGEIO -> KrusherImage(img, KrusherImpl)
-                KrusherType.SCRIMAGE -> KrusherImage(img, KrusherScr)
+                KrusherType.IMAGEIO -> KrusherImageDefault(img)
+                KrusherType.SCRIMAGE -> KrusherImageScr(img)
             }
         }
     }
@@ -36,3 +32,7 @@ class KrusherImage<T>(img: BufferedImage, val krusher: Krusher<T>): KrusherCompo
         IMAGEIO, SCRIMAGE
     }
 }
+
+class KrusherImageDefault(img: BufferedImage) : KrusherImage<BufferedImage>(img, KrusherImpl)
+class KrusherImageScr(img: BufferedImage) : KrusherImage<ImmutableImage>(img, KrusherScr)
+

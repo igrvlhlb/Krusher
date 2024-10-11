@@ -45,7 +45,7 @@ object KrusherImpl: Krusher<BufferedImage> {
     }
 
     override fun process(img: BufferedImage, iterations: Int) =
-        (0..iterations).fold(img) { newImg, iteration ->
+        (0 until iterations).fold(img) { newImg, iteration ->
             val pct = 100 * iteration / iterations
             val quality = 100 - pct
             compress(newImg, quality)

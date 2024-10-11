@@ -5,14 +5,12 @@ import com.github.ajalt.clikt.core.main
 import com.github.ajalt.clikt.parameters.arguments.argument
 import com.github.ajalt.clikt.parameters.arguments.convert
 import com.github.ajalt.clikt.parameters.arguments.help
-import com.github.ajalt.clikt.parameters.options.*
+import com.github.ajalt.clikt.parameters.options.default
+import com.github.ajalt.clikt.parameters.options.help
+import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.types.enum
 import com.github.ajalt.clikt.parameters.types.int
-import com.sksamuel.scrimage.ImmutableImage
-import krusher.Krusher
-import krusher.imageio.KrusherImpl
 import krusher.KrusherImage
-import krusher.scrimage.KrusherScr
 import java.awt.image.BufferedImage
 import java.io.File
 import java.io.IOException
@@ -43,14 +41,18 @@ class KrusherDemo: CliktCommand() {
 
     override fun run() {
         println("input: ${src.path}; output: ${dst.path}")
+
         val img = tryReadImage(src)
+
         val krusherType = when (impl) {
             KImpl.SCRIMAGE -> KrusherImage.KrusherType.SCRIMAGE
             KImpl.DEFAULT -> KrusherImage.KrusherType.IMAGEIO
         }
-        val krusherImg = KrusherImage.create(img, krusherType)
-        val crushed = krusherImg.process(iter).crush()
-        ImageIO.write(crushed, "jpeg", dst)
+
+        KrusherImage
+            .create(img, krusherType)
+            .process(iter)
+            .write(dst)
     }
 
     fun tryReadImage(file: File): BufferedImage =
